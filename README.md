@@ -53,11 +53,6 @@ Kết quả quét sẽ được lưu dưới dạng:
 - **JSON**
 - **HTML**
 
-## Ví dụ
-```bash
-python scanner.py
-```
-
 ## Liên hệ
 Nếu bạn có câu hỏi hoặc đề xuất, vui lòng liên hệ với chúng tôi qua email hoặc tạo issue trên GitHub.
 
