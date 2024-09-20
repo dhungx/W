@@ -48,7 +48,7 @@ class WebVulnerabilityScanner:
         server_header = response.headers.get('Server')
         if server_header:
             self.found_vulnerabilities.append(f"Server header found: {server_header}")
-            # Additional checks for vulnerabilities can be implemented here
+            # Additional checks for known vulnerabilities can be implemented here
 
     def scan_security_headers(self):
         response = requests.get(self.target_url, headers=self.headers, proxies=self.proxies)
@@ -86,9 +86,24 @@ class WebVulnerabilityScanner:
             if payload in response.text:
                 self.found_vulnerabilities.append(f"XSS Vulnerability found with payload: {payload}")
 
+    def detect_language(self):
+        response = requests.get(self.target_url, headers=self.headers, proxies=self.proxies)
+        if response.status_code == 200:
+            # Check for common indicators of specific languages
+            if 'PHP' in response.text:
+                self.found_vulnerabilities.append("Detected language: PHP")
+            elif 'Node.js' in response.text:
+                self.found_vulnerabilities.append("Detected language: Node.js")
+            elif 'Django' in response.text:
+                self.found_vulnerabilities.append("Detected language: Python (Django)")
+            elif 'Ruby on Rails' in response.text:
+                self.found_vulnerabilities.append("Detected language: Ruby on Rails")
+            else:
+                self.found_vulnerabilities.append("Language could not be detected.")
+
     def shodan_lookup(self):
         if self.shodan_api_key:
-            shodan_url = f"https://api.shodan.io/shodan/host/{self.target_url}?key={self.shodan_api_key}"
+            shodan_url = f"https://api.shodan.io/shodan/host/{urlparse(self.target_url).netloc}?key={self.shodan_api_key}"
             response = requests.get(shodan_url)
             if response.status_code == 200:
                 data = response.json()
@@ -135,6 +150,7 @@ if __name__ == "__main__":
     scanner.scan_cors()
     scanner.scan_api_endpoints()
     scanner.scan_xss()
+    scanner.detect_language()
     scanner.shodan_lookup()
 
     # Report
