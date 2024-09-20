@@ -18,13 +18,6 @@ Web Vulnerability Scanner là một công cụ giúp phát hiện các lỗ hổ
 - Python 3.x
 - Các thư viện cần thiết sẽ được cài đặt thông qua `install.py`.
 
-### Cài đặt thư viện
-Chạy lệnh sau để cài đặt các thư viện cần thiết:
-
-```bash
-python install.py
-```
-
 ## Sử dụng
 
 ### Clone/Run
