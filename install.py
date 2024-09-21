@@ -9,6 +9,7 @@ required_libraries = [
     "pyOpenSSL",
     "lxml",
     "urllib3",
+    "bs4",
     "python-shodan",  # For Shodan API
     "pysocks",        # For proxy support
     "dnspython",      # For DNS checks
