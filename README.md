@@ -4,13 +4,20 @@
 Web Vulnerability Scanner là một công cụ giúp phát hiện các lỗ hổng bảo mật phổ biến trên các trang web. Công cụ này hỗ trợ kiểm tra nhiều loại lỗ hổng, bao gồm XSS, SQL Injection, CORS, và kiểm tra cấu hình SSL/TLS.
 
 ## Tính năng
-- **Quét XSS**: Phát hiện lỗ hổng Cross-Site Scripting.
-- **Quét SQL Injection**: Kiểm tra khả năng bị tấn công SQL Injection.
-- **Kiểm tra SSL/TLS**: Đảm bảo rằng trang web sử dụng HTTPS và kiểm tra chứng chỉ SSL.
-- **Kiểm tra tiêu đề bảo mật**: Phát hiện các tiêu đề bảo mật thiếu sót.
-- **Quét CORS**: Kiểm tra cấu hình CORS và phát hiện lỗ hổng.
-- **Tích hợp Shodan API**: Tìm kiếm thông tin về máy chủ mục tiêu từ Shodan.
-- **Hỗ trợ session cookie**: Quét các trang yêu cầu đăng nhập với session cookie.
+- Quét XSS: Phát hiện lỗ hổng Cross-Site Scripting.  
+- Quét SQL Injection: Kiểm tra khả năng bị tấn công SQL Injection.  
+- Kiểm tra SSL/TLS: Đảm bảo rằng trang web sử dụng HTTPS và kiểm tra chứng chỉ SSL.  
+- Kiểm tra tiêu đề bảo mật: Phát hiện các tiêu đề bảo mật thiếu sót.  
+- Quét CORS: Kiểm tra cấu hình CORS và phát hiện lỗ hổng.  
+- Tích hợp Shodan API: Tìm kiếm thông tin về máy chủ mục tiêu từ Shodan.  
+- Hỗ trợ session cookie: Quét các trang yêu cầu đăng nhập với session cookie.  
+- Quét endpoint API: Phát hiện endpoint API có thể bị lộ.  
+- Quét Command Injection: Kiểm tra lỗ hổng chèn lệnh.  
+- Quét Directory Traversal: Phát hiện khả năng truy cập file trái phép.  
+- Quét CSRF: Kiểm tra bảo vệ Cross-Site Request Forgery.  
+- Kiểm tra HTTP Methods: Phát hiện phương thức HTTP không được phép.  
+- Quét Directory Listing: Kiểm tra xem thư mục có bị liệt kê công khai không.  
+- Phát hiện ngôn ngữ lập trình: Xác định framework/ngôn ngữ của trang web.
 
 ## Cài đặt
 
