@@ -137,6 +137,35 @@ class WebVulnerabilityScanner:
             except Exception as e:
                 logging.error(f"Error scanning for Directory Traversal: {str(e)}")
 
+    def scan_csrf(self):
+        csrf_tokens = ["<input type='hidden' name='csrf_token' value='", "<meta name='csrf-token' content='"]
+        try:
+            response = requests.get(self.target_url, headers=self.headers, proxies=self.proxies)
+            if any(token in response.text for token in csrf_tokens):
+                self.found_vulnerabilities.append({"message": "CSRF protection may be present.", "details": "Verify the implementation of CSRF tokens."})
+            else:
+                self.found_vulnerabilities.append({"message": "No CSRF protection detected.", "details": "Consider implementing CSRF protection."})
+        except Exception as e:
+            logging.error(f"Error scanning for CSRF: {str(e)}")
+
+    def check_http_methods(self):
+        methods = ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"]
+        try:
+            for method in methods:
+                response = requests.request(method, self.target_url, headers=self.headers, proxies=self.proxies)
+                if response.status_code == 405:
+                    self.found_vulnerabilities.append({"message": f"HTTP method {method} is not allowed.", "details": "Review allowed HTTP methods."})
+        except Exception as e:
+            logging.error(f"Error checking HTTP methods: {str(e)}")
+
+    def scan_directory_listing(self):
+        try:
+            response = requests.get(self.target_url, headers=self.headers, proxies=self.proxies)
+            if "Index of" in response.text:
+                self.found_vulnerabilities.append({"message": "Directory listing is enabled.", "details": "Consider disabling directory listing."})
+        except Exception as e:
+            logging.error(f"Error scanning for Directory Listing: {str(e)}")
+
     def detect_language(self):
         try:
             response = requests.get(self.target_url, headers=self.headers, proxies=self.proxies)
@@ -236,6 +265,28 @@ class WebVulnerabilityScanner:
                     from { transform: translateY(-10px); opacity: 0; }
                     to { transform: translateY(0); opacity: 1; }
                 }
+
+                footer {
+                    text-align: center;
+                    padding: 20px;
+                    background-color: #282c34;
+                    color: white;
+                    position: relative;
+                    overflow: hidden;
+                }
+
+                footer p {
+                    opacity: 0; /* Bắt đầu ở trạng thái mờ */
+                    transform: translateY(20px); /* Dịch xuống một chút */
+                    animation: fadeInUp 2s forwards; /* Thêm animation */
+                }
+
+                @keyframes fadeInUp {
+                    to {
+                        opacity: 1; /* Kết thúc ở trạng thái rõ ràng */
+                        transform: translateY(0); /* Dịch về vị trí ban đầu */
+                    }
+                }
             </style>
         </head>
         <body>
@@ -253,6 +304,7 @@ class WebVulnerabilityScanner:
             """
         html += """
             </ul>
+            <footer><p>&copy; 2024 ViBoss Studio</p></footer>
         </body>
         </html>
         """
@@ -279,6 +331,9 @@ if __name__ == "__main__":
     scanner.scan_sql_injection()
     scanner.scan_command_injection()
     scanner.scan_directory_traversal()
+    scanner.scan_csrf()  # New function for CSRF
+    scanner.check_http_methods()  # New function for checking HTTP methods
+    scanner.scan_directory_listing()  # New function for directory listing
     scanner.detect_language()
     scanner.shodan_lookup()
 
